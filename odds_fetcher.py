@@ -20,8 +20,8 @@ def get_today_matches():
         print("🔍 Raw Odds API Response:")
         print(response.json())
 
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch odds: {response.status_code} — {response.text}")
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch odds: {response.status_code} — {response.text}")
 
     data = response.json()
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
