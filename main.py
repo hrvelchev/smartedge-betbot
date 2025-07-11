@@ -7,7 +7,6 @@ from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
-    JobQueue,
 )
 from tip_generator import generate_daily_tips, generate_tomorrow_tips
 
@@ -53,12 +52,12 @@ async def send_tomorrow_tips(update: Update, context: ContextTypes.DEFAULT_TYPE)
     tips = generate_tomorrow_tips()
     await update.message.reply_text(tips)
 
-# ✅ Main runner for background worker
+# ✅ Main runner for background worker (polling)
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = ApplicationBuilder().token(TOKEN).job_queue().build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("today", send_today_tips))
     app.add_handler(CommandHandler("tomorrow", send_tomorrow_tips))
 
-    app.run_polling()  # ✅ Must use polling for background worker
+    app.run_polling()
