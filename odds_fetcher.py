@@ -16,6 +16,10 @@ def get_today_matches():
     }
 
     response = requests.get(BASE_URL, params=params)
+    
+        print("🔍 Raw Odds API Response:")
+        print(response.json())
+
     if response.status_code != 200:
         raise Exception(f"Failed to fetch odds: {response.status_code} — {response.text}")
 
