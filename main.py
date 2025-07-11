@@ -9,7 +9,7 @@ from telegram.ext import (
     JobQueue,
 )
 import os
-from tip_generator import generate_daily_tips, generate_tomorrow_tips  # ✅ Add tomorrow tip function
+from tip_generator import generate_daily_tips, generate_tomorrow_tips  # ✅ Already added
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
@@ -20,7 +20,7 @@ logging.basicConfig(
 # Timezone for Sofia (UTC+3)
 SOFIA_TZ = pytz.timezone("Europe/Sofia")
 
-# /start command handler
+# ✅ Combined /start + job registration in one handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "✅ SmartEdge Bot Connected\n\n"
@@ -28,23 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Use /today to see today's tips or /tomorrow to preview tomorrow's tips."
     )
 
-# /today command handler
-async def send_today_tips(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    tips = generate_daily_tips()
-    await update.message.reply_text(tips)
-
-# ✅ /tomorrow command handler
-async def send_tomorrow_tips(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    tips = generate_tomorrow_tips()
-    await update.message.reply_text(tips)
-
-# Job that sends daily tips at 08:00 Sofia time
-async def scheduled_tips_job(context: ContextTypes.DEFAULT_TYPE):
-    tips = generate_daily_tips()
-    await context.bot.send_message(chat_id=context.job.chat_id, text=tips)
-
-# Registers the daily job after /start
-async def register_daily_job(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Register the scheduled daily tips job
     job_queue: JobQueue = context.job_queue
     chat_id = update.effective_chat.id
     job_queue.run_daily(
@@ -54,12 +38,27 @@ async def register_daily_job(update: Update, context: ContextTypes.DEFAULT_TYPE)
         name=str(chat_id),
     )
 
+# /today command handler
+async def send_today_tips(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tips = generate_daily_tips()
+    await update.message.reply_text(tips)
+
+# /tomorrow command handler
+async def send_tomorrow_tips(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tips = generate_tomorrow_tips()
+    await update.message.reply_text(tips)
+
+# Scheduled job for daily tips
+async def scheduled_tips_job(context: ContextTypes.DEFAULT_TYPE):
+    tips = generate_daily_tips()
+    await context.bot.send_message(chat_id=context.job.chat_id, text=tips)
+
+# ✅ Main app launch
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("start", register_daily_job))
     app.add_handler(CommandHandler("today", send_today_tips))
-    app.add_handler(CommandHandler("tomorrow", send_tomorrow_tips))  # ✅ Added
+    app.add_handler(CommandHandler("tomorrow", send_tomorrow_tips))
 
     app.run_polling()
