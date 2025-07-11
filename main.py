@@ -9,7 +9,7 @@ from telegram.ext import (
     JobQueue,
 )
 import os
-from tip_generator import generate_daily_tips
+from tip_generator import generate_daily_tips, generate_tomorrow_tips  # ✅ Add tomorrow tip function
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
@@ -24,12 +24,18 @@ SOFIA_TZ = pytz.timezone("Europe/Sofia")
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "✅ SmartEdge Bot Connected\n\n"
-        "Welcome! Daily betting tips will arrive at 08:00 Sofia time."
+        "Welcome! Daily betting tips will arrive at 08:00 Sofia time.\n\n"
+        "Use /today to see today's tips or /tomorrow to preview tomorrow's tips."
     )
 
 # /today command handler
 async def send_today_tips(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tips = generate_daily_tips()
+    await update.message.reply_text(tips)
+
+# ✅ /tomorrow command handler
+async def send_tomorrow_tips(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tips = generate_tomorrow_tips()
     await update.message.reply_text(tips)
 
 # Job that sends daily tips at 08:00 Sofia time
@@ -54,5 +60,6 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("start", register_daily_job))
     app.add_handler(CommandHandler("today", send_today_tips))
+    app.add_handler(CommandHandler("tomorrow", send_tomorrow_tips))  # ✅ Added
 
     app.run_polling()
