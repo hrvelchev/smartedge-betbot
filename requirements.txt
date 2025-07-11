@@ -1,2 +1,6 @@
-python-telegram-bot==20.4
+python-telegram-bot==20.3
+xgboost==2.0.3
+scikit-learn
+pandas
+requests
 pytz
