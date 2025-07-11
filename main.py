@@ -22,20 +22,19 @@ logging.basicConfig(
 # Sofia timezone (UTC+3)
 SOFIA_TZ = pytz.timezone("Europe/Sofia")
 
-# 🔧 Clear existing webhook to avoid polling conflicts
+# 🔧 Clear webhook
 async def clear_webhook():
     bot = Bot(token=TOKEN)
     await bot.delete_webhook(drop_pending_updates=True)
     logging.info("🔌 Webhook cleared before polling started.")
 
-# /start command (also registers daily tip job)
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "✅ SmartEdge Bot Connected\n\n"
         "Welcome! Daily betting tips will arrive at 08:00 Sofia time.\n\n"
         "Use /today to see today's tips or /tomorrow to preview tomorrow's tips."
     )
-
     chat_id = update.effective_chat.id
     context.application.job_queue.run_daily(
         scheduled_tips_job,
@@ -59,14 +58,17 @@ async def send_tomorrow_tips(update: Update, context: ContextTypes.DEFAULT_TYPE)
     tips = generate_tomorrow_tips()
     await update.message.reply_text(tips)
 
-# ✅ Main runner for background worker (polling)
-if __name__ == "__main__":
-    asyncio.run(clear_webhook())  # 👈 Delete webhook before polling starts
+# ✅ Main runner
+async def main():
+    await clear_webhook()
 
     app = ApplicationBuilder().token(TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("today", send_today_tips))
     app.add_handler(CommandHandler("tomorrow", send_tomorrow_tips))
 
-    app.run_polling()
+    await app.run_polling()
+
+# ✅ Start everything
+if __name__ == "__main__":
+    asyncio.run(main())
