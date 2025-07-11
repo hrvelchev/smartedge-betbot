@@ -30,7 +30,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     chat_id = update.effective_chat.id
-    context.job_queue.run_daily(
+    context.application.job_queue.run_daily(
         scheduled_tips_job,
         time=dtime(hour=8, minute=0, tzinfo=SOFIA_TZ),
         chat_id=chat_id,
