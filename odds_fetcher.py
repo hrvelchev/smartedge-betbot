@@ -1,57 +1,32 @@
-# odds_fetcher.py
-
 import requests
+import os
 from datetime import datetime
-import pytz
 
-API_KEY = "2b95710869f3dbdb2a939bac365e9ce1"
+API_KEY = os.getenv("THE_ODDS_API_KEY")
 BASE_URL = "https://api.the-odds-api.com/v4/sports/soccer/odds"
 
 def get_today_matches():
-    tz_sofia = pytz.timezone("Europe/Sofia")
-    now = datetime.now(tz_sofia)
-    today_str = now.strftime("%Y-%m-%d")
-
     params = {
         "apiKey": API_KEY,
-        "regions": "eu",               # EU bookmakers (Betano, efbet, bwin, etc.)
-        "markets": "h2h",              # Head-to-head (1X2)
+        "regions": "eu",  # Focus on European markets
+        "markets": "h2h",  # Head-to-head (1X2)
         "oddsFormat": "decimal",
-        "dateFormat": "iso"
+        "dateFormat": "iso",
+        "bookmakers": "efbet,betano,winbet"  # ✅ Filter only Bulgarian bookmakers
     }
 
-    try:
-        response = requests.get(BASE_URL, params=params)
-        data = response.json()
+    response = requests.get(BASE_URL, params=params)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch odds: {response.status_code} — {response.text}")
 
-        matches_today = []
+    data = response.json()
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
 
-        for event in data:
-            if "commence_time" not in event:
-                continue
+    # Filter matches to include only today's games with available odds
+    today_matches = []
+    for match in data:
+        match_time = datetime.fromisoformat(match["commence_time"].replace("Z", "+00:00"))
+        if match_time.strftime("%Y-%m-%d") == today_str and match.get("bookmakers"):
+            today_matches.append(match)
 
-            match_time = datetime.fromisoformat(event["commence_time"].replace("Z", "+00:00")).astimezone(tz_sofia)
-            if match_time.strftime("%Y-%m-%d") != today_str:
-                continue
-
-            bookmakers = event.get("bookmakers", [])
-            if not bookmakers:
-                continue
-
-            best_bookmaker = bookmakers[0]
-            odds = best_bookmaker.get("markets", [])[0]["outcomes"]
-            match = {
-                "home_team": event["home_team"],
-                "away_team": event["away_team"],
-                "start_time": match_time.strftime("%H:%M"),
-                "bookmaker": best_bookmaker["title"],
-                "odds": {o["name"]: o["price"] for o in odds}
-            }
-
-            matches_today.append(match)
-
-        return matches_today
-
-    except Exception as e:
-        print(f"Error fetching odds: {e}")
-        return []
+    return today_matches
