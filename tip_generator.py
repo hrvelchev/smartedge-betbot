@@ -1,65 +1,52 @@
-# tip_generator.py
-
 from odds_fetcher import get_today_matches
-import xgboost as xgb
-import numpy as np
-import pandas as pd
-
-def load_model():
-    model = xgb.Booster()
-    model.load_model("model.xgb")
-    return model
-
-def preprocess_match(match):
-    # Dummy encoding for now — replace with real features if available
-    home = match["home_team"].lower()
-    away = match["away_team"].lower()
-    odds = match["odds"]
-
-    home_odd = odds.get(match["home_team"], None)
-    away_odd = odds.get(match["away_team"], None)
-    draw_odd = odds.get("Draw", None)
-
-    # Feature vector example (can be improved with team stats/ELO later)
-    return {
-        "home_odd": home_odd,
-        "draw_odd": draw_odd,
-        "away_odd": away_odd,
-    }
-
-def calculate_ev(prob, odd):
-    return (prob * odd) - 1 if odd and prob else -999
+from model import load_model_and_predict
 
 def generate_daily_tips():
-    model = load_model()
     matches = get_today_matches()
+    if not matches:
+        return "⚠️ No matches found for today from selected bookmakers."
+
+    model = load_model_and_predict()
     selected_tips = []
+    today_str = matches[0]["commence_time"][:10]
 
     for match in matches:
-        features = preprocess_match(match)
-        if None in features.values():
-            continue  # Skip if missing odds
+        home = match["home_team"]
+        away = match["away_team"]
+        match_time = match["commence_time"][11:16]
+        bookie = match["bookmakers"][0]["title"]
+        outcomes = match["bookmakers"][0]["markets"][0]["outcomes"]
 
-        df = pd.DataFrame([features])
-        dmatrix = xgb.DMatrix(df)
-        preds = model.predict(dmatrix)
+        for outcome in outcomes:
+            team = outcome["name"]
+            odds = outcome["price"]
 
-        outcomes = ["home_win", "draw", "away_win"]
-        odds_keys = [match["home_team"], "Draw", match["away_team"]]
+            # ➕ Calculate Implied Probability
+            implied_prob = 1 / odds
+            model_prob = model.predict_proba([[home, away, team]])[0][1]  # This may vary by model structure
+            ev = (odds * model_prob - 1) * 100
 
-        for i, outcome in enumerate(outcomes):
-            prob = preds[0][i] if len(preds.shape) > 1 else preds[i]
-            odd = match["odds"].get(odds_keys[i], None)
-            ev = calculate_ev(prob, odd)
-
-            if ev > 0.05:
-                tip = f"🏟️ {match['home_team']} vs {match['away_team']} @ {match['start_time']}\n" \
-                      f"📊 Tip: {outcome.replace('_', ' ').title()} @ {odd:.2f} (Bookie: {match['bookmaker']})\n" \
-                      f"✅ EV: {ev:.2%}\n"
-                selected_tips.append(tip)
+            # ✅ Apply EV and Odds Range Filter
+            if ev >= 5 and 1.85 <= odds <= 3.50:
+                selected_tips.append({
+                    "match": f"{home} vs {away}",
+                    "tip": team,
+                    "odds": round(odds, 2),
+                    "ev": round(ev, 2),
+                    "bookie": bookie,
+                    "time": match_time
+                })
 
     if not selected_tips:
-        return "📭 No high-EV bets found for today."
+        return f"⚠️ No high-value tips found today within odds range 1.85–3.50."
 
-    today_str = pd.Timestamp.now().strftime('%Y-%m-%d')
-    return f"🎯 AI-Generated Tips for {today_str}:\n\n" + "\n".join(selected_tips)
+    # Format final output
+    message = f"🎯 AI-Generated Tips for {today_str}:\n"
+    for tip in selected_tips:
+        message += (
+            f"\n🏟️ {tip['match']} @ {tip['time']}"
+            f"\n📊 Tip: {tip['tip']} @ {tip['odds']} (Bookie: {tip['bookie']})"
+            f"\n✅ EV: {tip['ev']}%\n"
+        )
+
+    return message
