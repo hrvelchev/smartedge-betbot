@@ -54,7 +54,7 @@ async def send_tomorrow_tips(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # ✅ Main runner for background worker (polling)
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(TOKEN).job_queue().build()
+    app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("today", send_today_tips))
