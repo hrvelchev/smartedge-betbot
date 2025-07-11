@@ -17,6 +17,15 @@ def fetch_matches():
 
     response = requests.get(BASE_URL, params=params)
 
+    print("📡 API Status Code:", response.status_code)
+    try:
+        data = response.json()
+        print(f"🔎 Received {len(data)} matches.")
+        for match in data[:3]:  # Show only first 3 matches
+            print("⚽ Match preview:", match)
+    except Exception as e:
+        print("❌ Error parsing JSON:", e)
+
     if response.status_code != 200:
         raise Exception(f"Failed to fetch odds: {response.status_code} — {response.text}")
 
