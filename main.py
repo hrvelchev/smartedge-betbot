@@ -4,6 +4,7 @@ from datetime import datetime
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import os
+from tips_generator import generate_daily_tips
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
@@ -16,7 +17,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📊 Here are today’s betting tips:\n\n1. Team A vs Team B — Over 2.5\n2. Team C to Win\n3. Draw @ 3.60\n\n(GENERATED TIPS PLACEHOLDER)")
+    tips = generate_daily_tips()
+    await update.message.reply_text(tips)
 
 if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN).build()
