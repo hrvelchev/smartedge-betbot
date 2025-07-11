@@ -2,7 +2,7 @@ import requests
 import os
 from datetime import datetime
 
-API_KEY = os.getenv("THE_ODDS_API_KEY")
+API_KEY = "2b95710869f3dbdb2a939bac365e9ce1"
 BASE_URL = "https://api.the-odds-api.com/v4/sports/soccer/odds"
 
 def get_today_matches():
