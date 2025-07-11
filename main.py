@@ -1,8 +1,9 @@
 import logging
 import pytz
 import os
+import asyncio
 from datetime import datetime, time as dtime
-from telegram import Update
+from telegram import Update, Bot
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -20,6 +21,12 @@ logging.basicConfig(
 
 # Sofia timezone (UTC+3)
 SOFIA_TZ = pytz.timezone("Europe/Sofia")
+
+# 🔧 Clear existing webhook to avoid polling conflicts
+async def clear_webhook():
+    bot = Bot(token=TOKEN)
+    await bot.delete_webhook(drop_pending_updates=True)
+    logging.info("🔌 Webhook cleared before polling started.")
 
 # /start command (also registers daily tip job)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -54,6 +61,8 @@ async def send_tomorrow_tips(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # ✅ Main runner for background worker (polling)
 if __name__ == "__main__":
+    asyncio.run(clear_webhook())  # 👈 Delete webhook before polling starts
+
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
