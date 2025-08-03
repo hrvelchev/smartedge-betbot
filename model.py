@@ -1,36 +1,48 @@
 import xgboost as xgb
 import pandas as pd
 import numpy as np
-import os
 
-# Path to the pre‑trained XGBoost model.  When deploying the bot, ensure
-# that ``model.xgb`` is present in the working directory or update this
-# constant accordingly.
+# Path to the pre-trained XGBoost model.
 MODEL_PATH = "model.xgb"
 
 def load_model_and_predict():
-    """Load the XGBoost model and return a predictor object.
-
-    The returned object exposes a ``predict_proba`` method that accepts a
-    list of feature triplets [home_team, away_team, outcome] and returns a
-    two‑column NumPy array with probabilities for [lose/draw, win].  Feature
-    encoding is performed via simple hashing to integers, mirroring the
-    training pipeline.
     """
-    model = xgb.XGBClassifier()
-    model.load_model(MODEL_PATH)
+    Load the XGBoost model and return a predictor object.
+
+    Uses Booster directly to avoid issues with n_classes_ attributes
+    when loading a model trained elsewhere.
+    """
+
+    # Load the raw booster instead of XGBClassifier
+    booster = xgb.Booster()
+    booster.load_model(MODEL_PATH)
 
     def predict_proba(features_list):
-        results = []
+        """
+        Convert features (home, away, outcome) into hashed numeric features,
+        build an xgboost DMatrix, and get probability predictions.
+        """
+        data = []
         for home, away, outcome in features_list:
-            row = {
-                "home_team": hash(home) % 10_000,
-                "away_team": hash(away) % 10_000,
-                "outcome": hash(outcome) % 10_000,
-            }
-            df = pd.DataFrame([row])
-            prob = model.predict_proba(df)[0][1]
-            results.append([1 - prob, prob])
+            row = [
+                hash(home) % 10_000,
+                hash(away) % 10_000,
+                hash(outcome) % 10_000,
+            ]
+            data.append(row)
+
+        # Create a DMatrix for prediction
+        dmatrix = xgb.DMatrix(np.array(data))
+
+        # Booster.predict returns probabilities directly for binary classification
+        probs = booster.predict(dmatrix)
+
+        # Ensure correct shape: return [[1-p, p]] for each sample
+        results = []
+        for p in probs:
+            p_val = float(p) if not isinstance(p, (list, np.ndarray)) else float(p[0])
+            results.append([1 - p_val, p_val])
+
         return np.array(results)
 
     class Predictor:
