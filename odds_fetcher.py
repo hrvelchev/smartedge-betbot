@@ -2,7 +2,10 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-API_KEY = "2b95710869f3dbdb2a939bac365e9ce1"
+# Use an environment variable for the API key to avoid hard‑coding secrets. This allows
+# deployment platforms like Render to securely supply the key. Fall back to a
+# placeholder for local testing.
+API_KEY = os.getenv("ODDS_API_KEY", "2b95710869f3dbdb2a939bac365e9ce1")
 BASE_URL = "https://api.the-odds-api.com/v4/sports/soccer/odds"
 
 def fetch_matches():

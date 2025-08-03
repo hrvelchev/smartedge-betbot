@@ -78,7 +78,10 @@ def generate_daily_tips():
 # ➤ Function to generate tomorrow's tips
 def generate_tomorrow_tips():
     print("📅 Generating tips for TOMORROW...")
-    matches = get_today_matches()
+    # Fetch matches scheduled for tomorrow rather than today. Using get_tomorrow_matches
+    # ensures that only fixtures commencing on the following day are considered.
+    from odds_fetcher import get_tomorrow_matches
+    matches = get_tomorrow_matches()
     print(f"🔍 Matches fetched: {len(matches)}")
 
     if not matches:
